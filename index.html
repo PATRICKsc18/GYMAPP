@@ -1,0 +1,1795 @@
+<!DOCTYPE html>
+<html lang="es" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="VORTEX">
+    <meta name="theme-color" content="#09090b">
+    <title>VORTEX // Dark Performance</title>
+
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Google Fonts: Inter & JetBrains Mono -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;600;700;800&display=swap" rel="stylesheet">
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        obsidian: '#09090b',
+                        charcoal: '#121216',
+                        surface: '#17171d',
+                        surface2: '#1f1f27',
+                        borderdark: '#272732',
+                        violet: {
+                            DEFAULT: '#8b5cf6',
+                            deep: '#7c3aed',
+                            neon: '#a855f7',
+                            light: '#c4b5fd'
+                        }
+                    },
+                    fontFamily: {
+                        sans: ['Inter', '-apple-system', 'BlinkMacSystemFont', 'sans-serif'],
+                        mono: ['JetBrains Mono', 'monospace']
+                    }
+                }
+            }
+        }
+    </script>
+
+    <style>
+        * {
+            -webkit-tap-highlight-color: transparent;
+            box-sizing: border-box;
+        }
+        body {
+            background-color: #09090b;
+            color: #f4f4f6;
+            font-family: 'Inter', -apple-system, sans-serif;
+            overflow-x: hidden;
+            padding-bottom: calc(88px + env(safe-area-inset-bottom));
+            padding-top: env(safe-area-inset-top);
+        }
+        .tabular-nums {
+            font-variant-numeric: tabular-nums;
+            font-family: 'JetBrains Mono', monospace;
+        }
+        /* Prevent iOS Safari auto-zoom on input focus by enforcing 16px font-size */
+        .ios-input {
+            font-size: 16px !important;
+            line-height: 1.25rem;
+            background-color: #0c0c10;
+            border: 1px solid #272732;
+            color: #ffffff;
+            transition: all 0.15s ease;
+        }
+        .ios-input:focus {
+            outline: none;
+            border-color: #8b5cf6;
+            box-shadow: 0 0 0 2px rgba(139, 92, 246, 0.28);
+            background-color: #121218;
+        }
+        input[type=number]::-webkit-inner-spin-button,
+        input[type=number]::-webkit-outer-spin-button {
+            -webkit-appearance: none;
+            margin: 0;
+        }
+        input[type=number] {
+            -moz-appearance: textfield;
+        }
+        .card-clean {
+            background-color: #121216;
+            border: 1px solid #24242e;
+        }
+        .card-active {
+            background: linear-gradient(180deg, #171720 0%, #121217 100%);
+            border: 1px solid rgba(139, 92, 246, 0.55);
+            box-shadow: 0 8px 30px -10px rgba(124, 58, 237, 0.25);
+        }
+        .violet-pulse {
+            animation: vPulse 1.2s ease-in-out 3;
+        }
+        @keyframes vPulse {
+            0%, 100% { box-shadow: 0 0 0 0 rgba(168, 85, 247, 0); }
+            50% { box-shadow: 0 0 25px 6px rgba(168, 85, 247, 0.65); }
+        }
+        ::-webkit-scrollbar { width: 4px; height: 4px; }
+        ::-webkit-scrollbar-track { background: #09090b; }
+        ::-webkit-scrollbar-thumb { background: #272732; border-radius: 9999px; }
+    </style>
+</head>
+<body class="min-h-screen selection:bg-violet-deep selection:text-white">
+
+    <!-- =====================================================================
+         STICKY DUAL-TIMER TOP BAR (ALWAYS VISIBLE IN GYM)
+         ===================================================================== -->
+    <header class="sticky top-0 z-40 bg-obsidian/90 backdrop-blur-xl border-b border-borderdark px-3.5 py-2.5">
+        <div class="max-w-xl mx-auto flex items-center justify-between gap-2">
+            
+            <!-- Left: Total Workout Elapsed Time -->
+            <div class="flex items-center gap-2 bg-charcoal border border-borderdark rounded-xl px-3 py-1.5">
+                <button onclick="toggleTotalTimer()" class="flex items-center gap-2 text-left group" title="Iniciar / Pausar tiempo total">
+                    <span id="totalTimerDot" class="w-2 h-2 rounded-full bg-zinc-500 transition-colors"></span>
+                    <div>
+                        <div class="text-[9px] uppercase tracking-wider text-zinc-400 font-semibold leading-none">Tiempo Total</div>
+                        <div id="totalTimerDisplay" class="tabular-nums text-sm font-extrabold text-white tracking-tight mt-0.5">00:00:00</div>
+                    </div>
+                </button>
+                <button onclick="resetTotalTimerConfirm()" class="text-zinc-500 hover:text-zinc-300 pl-1.5 border-l border-borderdark text-xs" title="Reiniciar cronómetro">
+                    <i class="fa-solid fa-rotate-left"></i>
+                </button>
+            </div>
+
+            <!-- Center Brand + Cloud Indicator -->
+            <div class="hidden sm:flex items-center gap-1.5">
+                <span class="w-2 h-2 rounded-full bg-violet"></span>
+                <span class="font-extrabold text-xs tracking-widest text-zinc-200">VORTEX</span>
+                <span id="cloudStatusDot" class="text-[10px] font-mono text-zinc-500 ml-1" title="Estado de sincronización">●</span>
+            </div>
+
+            <!-- Right: Auto Rest Countdown Timer -->
+            <div id="restTimerPill" class="flex items-center gap-2 bg-charcoal border border-borderdark rounded-xl px-3 py-1.5 transition-all">
+                <button onclick="toggleRestPopover()" class="flex items-center gap-2 text-right">
+                    <i class="fa-solid fa-stopwatch text-violet text-sm"></i>
+                    <div class="text-left">
+                        <div class="text-[9px] uppercase tracking-wider text-zinc-400 font-semibold leading-none">Descanso</div>
+                        <div id="restTimerDisplay" class="tabular-nums text-sm font-extrabold text-violet-light tracking-tight mt-0.5">02:00</div>
+                    </div>
+                </button>
+                <button onclick="startOrPauseRestTimer()" id="restPlayPauseBtn" class="w-7 h-7 rounded-lg bg-violet/20 hover:bg-violet/30 border border-violet/40 text-violet-light flex items-center justify-center text-xs transition">
+                    <i class="fa-solid fa-play" id="restPlayIcon"></i>
+                </button>
+            </div>
+
+        </div>
+
+        <!-- Quick Rest Timer Popover -->
+        <div id="restPopover" class="hidden max-w-xl mx-auto mt-2 pt-2 border-t border-borderdark/80 flex flex-wrap items-center justify-between gap-1.5">
+            <div class="flex items-center gap-1">
+                <button onclick="setRestPreset(60)" class="px-2.5 py-1.5 rounded-lg bg-surface hover:bg-violet/20 border border-borderdark text-xs font-mono font-bold text-zinc-200">60s</button>
+                <button onclick="setRestPreset(90)" class="px-2.5 py-1.5 rounded-lg bg-surface hover:bg-violet/20 border border-borderdark text-xs font-mono font-bold text-zinc-200">90s</button>
+                <button onclick="setRestPreset(120)" class="px-2.5 py-1.5 rounded-lg bg-surface hover:bg-violet/20 border border-borderdark text-xs font-mono font-bold text-zinc-200">120s</button>
+                <button onclick="setRestPreset(180)" class="px-2.5 py-1.5 rounded-lg bg-surface hover:bg-violet/20 border border-borderdark text-xs font-mono font-bold text-zinc-200">180s</button>
+            </div>
+            <div class="flex items-center gap-1">
+                <button onclick="adjustRestSeconds(-15)" class="px-2 py-1.5 rounded-lg bg-surface2 text-xs font-mono text-zinc-300 border border-borderdark">-15s</button>
+                <button onclick="adjustRestSeconds(15)" class="px-2 py-1.5 rounded-lg bg-surface2 text-xs font-mono text-zinc-300 border border-borderdark">+15s</button>
+                <button onclick="resetRestTimer()" class="px-2.5 py-1.5 rounded-lg bg-rose-500/15 text-rose-300 border border-rose-500/30 text-xs font-mono">Reset</button>
+            </div>
+        </div>
+    </header>
+
+    <!-- =====================================================================
+         MAIN CONTAINER (MAX-W-XL FOR ERGONOMIC IPHONE ONE-HAND USE)
+         ===================================================================== -->
+    <main class="max-w-xl mx-auto px-3.5 pt-3.5">
+
+        <!-- =================================================================
+             VIEW 1: ENTRENAR HOY (ULTRA-CLEAN DAILY ACCORDION)
+             ================================================================= -->
+        <section id="view-workout" class="space-y-3.5">
+
+            <!-- Clean Day Selector + Progress Bar -->
+            <div class="card-clean rounded-2xl p-3">
+                <!-- 3-Day Segmented Control -->
+                <div class="grid grid-cols-3 gap-1.5 bg-obsidian p-1 rounded-xl border border-borderdark" id="dayTabsContainer">
+                    <!-- Populated by JS: LUNES | MIÉRCOLES | VIERNES -->
+                </div>
+
+                <!-- Day Muscle Focus & Set Progress -->
+                <div class="mt-3 flex items-center justify-between gap-2 px-1">
+                    <div>
+                        <h1 id="currentDaySubtitle" class="text-xs font-bold text-zinc-200 tracking-tight">Hombros + pecho + tríceps + pierna</h1>
+                        <p id="lastTrainedLabel" class="text-[11px] font-mono text-zinc-400 mt-0.5">Referencia cargada de tu última semana</p>
+                    </div>
+                    <div class="text-right shrink-0">
+                        <span id="dayProgressCount" class="tabular-nums text-xs font-extrabold text-violet-light">0 / 17 series</span>
+                    </div>
+                </div>
+
+                <!-- Thin Violet Progress Bar -->
+                <div class="w-full h-1.5 bg-obsidian rounded-full overflow-hidden mt-2 border border-borderdark/60">
+                    <div id="dayProgressBar" class="h-full bg-gradient-to-r from-violet-deep to-violet-neon transition-all duration-300" style="width: 0%"></div>
+                </div>
+            </div>
+
+            <!-- Smart Accordion Exercise Cards (Only 6 exercises of the selected day) -->
+            <div id="accordionExercisesList" class="space-y-2.5">
+                <!-- Populated dynamically by JS -->
+            </div>
+
+            <!-- Finish & Save Session Footer Card -->
+            <div class="card-clean rounded-2xl p-3.5 space-y-3 mt-4">
+                <div class="flex items-center justify-between text-xs text-zinc-400 px-0.5">
+                    <span>Fecha de registro:</span>
+                    <input type="date" id="sessionDatePicker" onchange="updateDraftDate(this.value)" class="bg-obsidian border border-borderdark rounded-lg px-2.5 py-1 text-xs font-mono font-bold text-white focus:outline-none focus:border-violet">
+                </div>
+
+                <button onclick="finishAndSaveSession()" class="w-full py-3.5 px-4 rounded-xl bg-gradient-to-r from-violet-deep via-violet to-violet-neon hover:opacity-95 active:scale-[0.99] text-white font-extrabold text-sm tracking-wide shadow-lg shadow-violet-deep/30 transition flex items-center justify-center gap-2">
+                    <i class="fa-solid fa-circle-check"></i>
+                    <span>FINALIZAR Y GUARDAR ENTRENAMIENTO</span>
+                </button>
+            </div>
+
+        </section>
+
+        <!-- =================================================================
+             VIEW 2: PROGRESO & PC (CHARTS, HISTORY & iOS/EXCEL EXPORT)
+             ================================================================= -->
+        <section id="view-analytics" class="hidden space-y-4">
+
+            <!-- iPhone & PC Export Hub -->
+            <div class="card-clean rounded-2xl p-4 space-y-3 border-violet/40">
+                <div class="flex items-center justify-between">
+                    <div class="flex items-center gap-2.5">
+                        <div class="w-8 h-8 rounded-xl bg-violet/20 border border-violet/40 flex items-center justify-center text-violet-light">
+                            <i class="fa-brands fa-apple text-base"></i>
+                        </div>
+                        <div>
+                            <h2 class="text-xs font-extrabold uppercase tracking-wider text-white">Exportar Datos (iPhone ⇄ PC)</h2>
+                            <p id="syncStatusText" class="text-[11px] text-zinc-400">Listo para Excel, Python o copia de seguridad</p>
+                        </div>
+                    </div>
+                    <span id="totalSessionsBadge" class="px-2 py-0.5 rounded-md bg-surface2 border border-borderdark text-[11px] font-mono text-violet-light">0 sesiones</span>
+                </div>
+
+                <!-- Primary Export Buttons -->
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                    <button onclick="shareOrDownloadCSV(true)" class="py-3 px-3.5 rounded-xl bg-violet/20 hover:bg-violet/30 border border-violet/50 text-left transition flex items-center justify-between group">
+                        <div>
+                            <div class="text-xs font-extrabold text-white flex items-center gap-1.5">
+                                <i class="fa-solid fa-arrow-up-from-bracket text-violet-light"></i>
+                                <span>Compartir Excel .CSV (iPhone)</span>
+                            </div>
+                            <p class="text-[10px] text-zinc-400 mt-0.5">AirDrop, iCloud Drive, WhatsApp o Correo</p>
+                        </div>
+                        <i class="fa-solid fa-chevron-right text-xs text-violet-light group-hover:translate-x-0.5 transition"></i>
+                    </button>
+
+                    <button onclick="shareOrDownloadCSV(false)" class="py-3 px-3.5 rounded-xl bg-emerald-500/15 hover:bg-emerald-500/25 border border-emerald-500/40 text-left transition flex items-center justify-between group">
+                        <div>
+                            <div class="text-xs font-extrabold text-emerald-300 flex items-center gap-1.5">
+                                <i class="fa-solid fa-file-csv"></i>
+                                <span>Descargar .CSV Directo (PC)</span>
+                            </div>
+                            <p class="text-[10px] text-zinc-400 mt-0.5">Tabla plana con Serie, Peso, Reps, RIR y 1RM</p>
+                        </div>
+                        <i class="fa-solid fa-download text-xs text-emerald-300"></i>
+                    </button>
+                </div>
+
+                <!-- Secondary Backup JSON & Demo Reset -->
+                <div class="pt-2 border-t border-borderdark flex flex-wrap items-center justify-between gap-2">
+                    <div class="flex items-center gap-1.5">
+                        <button onclick="exportFullJSON()" class="px-2.5 py-1.5 rounded-lg bg-surface2 hover:bg-zinc-800 border border-borderdark text-[11px] font-semibold text-zinc-300">
+                            <i class="fa-solid fa-code mr-1 text-violet-light"></i>Exportar JSON
+                        </button>
+                        <label class="px-2.5 py-1.5 rounded-lg bg-surface2 hover:bg-zinc-800 border border-borderdark text-[11px] font-semibold text-zinc-300 cursor-pointer">
+                            <i class="fa-solid fa-file-import mr-1 text-violet-light"></i>Importar JSON
+                            <input type="file" accept=".json" onchange="importFullJSON(event)" class="hidden">
+                        </label>
+                    </div>
+
+                    <button onclick="confirmClearHistory()" class="px-2.5 py-1.5 rounded-lg bg-rose-500/15 hover:bg-rose-500/25 border border-rose-500/30 text-[11px] font-semibold text-rose-300">
+                        Borrar Datos de Prueba / Reiniciar
+                    </button>
+                </div>
+            </div>
+
+            <!-- Interactive Progress Chart Card -->
+            <div class="card-clean rounded-2xl p-4 space-y-3">
+                <div class="flex items-center justify-between">
+                    <h2 class="text-xs font-extrabold uppercase tracking-wider text-white flex items-center gap-2">
+                        <i class="fa-solid fa-chart-line text-violet"></i>
+                        <span>Evolución por Ejercicio</span>
+                    </h2>
+                    <span id="chartDeltaPill" class="text-[11px] font-mono px-2 py-0.5 rounded bg-emerald-500/15 text-emerald-300 border border-emerald-500/30"></span>
+                </div>
+
+                <div class="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                    <select id="chartExerciseSelect" onchange="renderAnalyticsView()" class="sm:col-span-2 rounded-xl px-3 py-2 text-xs font-bold bg-obsidian border border-borderdark text-white focus:outline-none focus:border-violet"></select>
+                    <select id="chartMetricSelect" onchange="renderAnalyticsView()" class="rounded-xl px-3 py-2 text-xs font-bold bg-obsidian border border-borderdark text-white focus:outline-none focus:border-violet">
+                        <option value="e1rm">1RM Estimado (kg)</option>
+                        <option value="maxWeight">Peso Máximo (kg)</option>
+                        <option value="volume">Volumen Total (kg)</option>
+                    </select>
+                </div>
+
+                <!-- 3 Micro KPIs -->
+                <div class="grid grid-cols-3 gap-2">
+                    <div class="bg-obsidian/80 border border-borderdark rounded-xl p-2.5">
+                        <div class="text-[10px] text-zinc-400 uppercase">Mejor Peso</div>
+                        <div id="statBestWeight" class="tabular-nums text-sm font-extrabold text-white mt-0.5">-- kg</div>
+                    </div>
+                    <div class="bg-obsidian/80 border border-borderdark rounded-xl p-2.5">
+                        <div class="text-[10px] text-zinc-400 uppercase">Mejor 1RM</div>
+                        <div id="statBest1RM" class="tabular-nums text-sm font-extrabold text-violet-light mt-0.5">-- kg</div>
+                    </div>
+                    <div class="bg-obsidian/80 border border-borderdark rounded-xl p-2.5">
+                        <div class="text-[10px] text-zinc-400 uppercase">Última Sesión</div>
+                        <div id="statLastSets" class="tabular-nums text-xs font-bold text-emerald-400 mt-1 truncate">--</div>
+                    </div>
+                </div>
+
+                <!-- HTML5 Canvas Chart -->
+                <div class="relative w-full h-52 bg-obsidian rounded-xl border border-borderdark p-2">
+                    <canvas id="progressCanvas" class="w-full h-full block"></canvas>
+                </div>
+            </div>
+
+            <!-- Clean Session History Log -->
+            <div class="card-clean rounded-2xl p-4 space-y-3">
+                <div class="flex items-center justify-between">
+                    <h2 class="text-xs font-extrabold uppercase tracking-wider text-white flex items-center gap-2">
+                        <i class="fa-solid fa-clock-rotate-left text-violet"></i>
+                        <span>Historial de Sesiones</span>
+                    </h2>
+                    <select id="historyDayFilter" onchange="renderHistoryCards()" class="rounded-lg px-2.5 py-1 text-xs bg-obsidian border border-borderdark text-zinc-300">
+                        <option value="all">Todos los días</option>
+                        <option value="lunes">Lunes</option>
+                        <option value="miercoles">Miércoles</option>
+                        <option value="viernes">Viernes</option>
+                    </select>
+                </div>
+
+                <div id="historyListContainer" class="space-y-2.5">
+                    <!-- Populated by JS -->
+                </div>
+            </div>
+
+        </section>
+
+    </main>
+
+    <!-- CUSTOM MODAL (NO BROWSER ALERT/CONFIRM) -->
+    <div id="appModal" class="hidden fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
+        <div class="w-full max-w-sm bg-surface border border-borderdark rounded-2xl p-4 shadow-2xl space-y-3">
+            <div class="flex items-center justify-between">
+                <h3 id="appModalTitle" class="text-sm font-extrabold text-white">Confirmación</h3>
+                <button onclick="closeAppModal()" class="text-zinc-400 hover:text-white px-1">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            </div>
+            <p id="appModalMessage" class="text-xs text-zinc-300 leading-relaxed"></p>
+            <div id="appModalButtons" class="flex items-center justify-end gap-2 pt-2"></div>
+        </div>
+    </div>
+
+    <!-- TOAST CONTAINER -->
+    <div id="toastBox" class="fixed bottom-20 left-1/2 -translate-x-1/2 z-50 pointer-events-none flex flex-col items-center gap-1.5 w-full max-w-xs px-4"></div>
+
+    <!-- =====================================================================
+         ULTRA-CLEAN 2-BUTTON BOTTOM NAVIGATION BAR (iOS SAFE AREA)
+         ===================================================================== -->
+    <nav class="fixed bottom-0 left-0 right-0 z-40 bg-obsidian/95 backdrop-blur-xl border-t border-borderdark pb-[env(safe-area-inset-bottom)]">
+        <div class="max-w-xl mx-auto grid grid-cols-2 gap-2 px-3.5 py-2">
+            <button onclick="switchMainView('workout')" id="navBtnWorkout" class="flex items-center justify-center gap-2 py-2.5 rounded-xl font-extrabold text-xs tracking-wide transition">
+                <i class="fa-solid fa-bolt"></i>
+                <span>Entrenar Hoy</span>
+            </button>
+            <button onclick="switchMainView('analytics')" id="navBtnAnalytics" class="flex items-center justify-center gap-2 py-2.5 rounded-xl font-extrabold text-xs tracking-wide transition">
+                <i class="fa-solid fa-chart-line"></i>
+                <span>Progreso & PC</span>
+            </button>
+        </div>
+    </nav>
+
+    <!-- =====================================================================
+         APPLICATION LOGIC + FIREBASE CLOUD SYNC
+         ===================================================================== -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, doc, setDoc, deleteDoc, collection, onSnapshot } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+        /* ---------------------------------------------------------------------
+           1. EXACT USER 3-DAY ROUTINE DEFINITION
+           --------------------------------------------------------------------- */
+        const ROUTINE = {
+            lunes: {
+                key: 'lunes',
+                label: 'LUNES',
+                subtitle: 'Hombros + pecho + tríceps + pierna',
+                exercises: [
+                    { id: 'mon_press_hombros', name: 'Press de hombros', sets: 3, repsTarget: '6-10', rirTarget: '2-3', muscle: 'Hombros' },
+                    { id: 'mon_elev_laterales', name: 'Elevaciones laterales', sets: 3, repsTarget: '12-15', rirTarget: '2-3', muscle: 'Hombros' },
+                    { id: 'mon_press_inclinado', name: 'Press inclinado', sets: 3, repsTarget: '8-12', rirTarget: '2-3', muscle: 'Pecho' },
+                    { id: 'mon_ext_triceps_polea', name: 'Extensión de tríceps en polea', sets: 3, repsTarget: '10-15', rirTarget: '2-3', muscle: 'Tríceps' },
+                    { id: 'mon_prensa_piernas', name: 'Prensa de piernas', sets: 3, repsTarget: '8-12', rirTarget: '2-3', muscle: 'Pierna' },
+                    { id: 'mon_elev_pantorrilla', name: 'Elevaciones de pantorrilla', sets: 2, repsTarget: '12-15', rirTarget: '2-3', muscle: 'Pierna' }
+                ]
+            },
+            miercoles: {
+                key: 'miercoles',
+                label: 'MIÉRCOLES',
+                subtitle: 'Piernas + espalda',
+                exercises: [
+                    { id: 'wed_sentadilla_hack', name: 'Sentadilla / Hack squat', sets: 3, repsTarget: '6-10', rirTarget: '2-3', muscle: 'Piernas' },
+                    { id: 'wed_pm_rumano', name: 'Peso muerto rumano', sets: 3, repsTarget: '8-12', rirTarget: '2-3', muscle: 'Piernas' },
+                    { id: 'wed_curl_femoral', name: 'Curl femoral', sets: 2, repsTarget: '10-15', rirTarget: '2-3', muscle: 'Piernas' },
+                    { id: 'wed_remo_sentado', name: 'Remo sentado', sets: 3, repsTarget: '8-12', rirTarget: '2-3', muscle: 'Espalda' },
+                    { id: 'wed_jalon_pecho', name: 'Jalón al pecho', sets: 3, repsTarget: '8-12', rirTarget: '2-3', muscle: 'Espalda' },
+                    { id: 'wed_abdominales', name: 'Abdominales', sets: 3, setsLabel: '2-3', repsTarget: '12-15', rirTarget: '2-3', muscle: 'Core' }
+                ]
+            },
+            viernes: {
+                key: 'viernes',
+                label: 'VIERNES',
+                subtitle: 'Espalda + hombros + brazos',
+                exercises: [
+                    { id: 'fri_jalon_dominadas', name: 'Jalón al pecho / dominadas asistidas', sets: 3, repsTarget: '8-12', rirTarget: '2-3', muscle: 'Espalda' },
+                    { id: 'fri_remo', name: 'Remo', sets: 3, repsTarget: '8-12', rirTarget: '2-3', muscle: 'Espalda' },
+                    { id: 'fri_elev_laterales', name: 'Elevaciones laterales', sets: 3, repsTarget: '12-20', rirTarget: '2-3', muscle: 'Hombros' },
+                    { id: 'fri_pajaros', name: 'Pájaros / reverse fly', sets: 2, repsTarget: '12-20', rirTarget: '2-3', muscle: 'Hombros' },
+                    { id: 'fri_curl_biceps', name: 'Curl de bíceps', sets: 3, repsTarget: '8-12', rirTarget: '2-3', muscle: 'Bíceps' },
+                    { id: 'fri_ext_triceps', name: 'Extensión de tríceps', sets: 3, repsTarget: '8-12', rirTarget: '2-3', muscle: 'Tríceps' }
+                ]
+            }
+        };
+
+        /* ---------------------------------------------------------------------
+           2. STATE & TIMERS
+           --------------------------------------------------------------------- */
+        let currentView = 'workout';
+        let selectedDayKey = detectTodayRoutineKey();
+        let expandedExerciseIndex = 0; // Smart accordion focus index
+        let workoutHistory = [];
+        let activeSessionDrafts = {}; // Keyed by 'lunes', 'miercoles', 'viernes'
+
+        // Dual Timers State
+        let totalElapsedSeconds = 0;
+        let totalTimerInterval = null;
+        let isTotalTimerRunning = false;
+
+        let defaultRestDuration = 120; // 2:00 default
+        let restRemainingSeconds = 120;
+        let restTimerInterval = null;
+        let isRestTimerRunning = false;
+
+        // Cloud Firestore State
+        let db = null;
+        let auth = null;
+        let currentUser = null;
+        const appId = typeof __app_id !== 'undefined' ? __app_id : 'vortex-dark-performance';
+
+        /* ---------------------------------------------------------------------
+           3. INITIALIZE DEMO DATA (2 PREVIOUS WEEKS FOR IMMEDIATE COMPARISON)
+           --------------------------------------------------------------------- */
+        function isoDateDaysAgo(daysAgo) {
+            const d = new Date();
+            d.setDate(d.getDate() - daysAgo);
+            const yyyy = d.getFullYear();
+            const mm = String(d.getMonth() + 1).padStart(2, '0');
+            const dd = String(d.getDate()).padStart(2, '0');
+            return `${yyyy}-${mm}-${dd}`;
+        }
+
+        function buildInitial2WeeksHistory() {
+            const basePerf = {
+                // Lunes
+                mon_press_hombros: { w: 40, r: 8, rir: 2 },
+                mon_elev_laterales: { w: 12, r: 14, rir: 2 },
+                mon_press_inclinado: { w: 60, r: 10, rir: 2 },
+                mon_ext_triceps_polea: { w: 25, r: 12, rir: 2 },
+                mon_prensa_piernas: { w: 140, r: 10, rir: 2 },
+                mon_elev_pantorrilla: { w: 70, r: 14, rir: 2 },
+                // Miércoles
+                wed_sentadilla_hack: { w: 90, r: 8, rir: 2 },
+                wed_pm_rumano: { w: 85, r: 10, rir: 2 },
+                wed_curl_femoral: { w: 45, r: 12, rir: 2 },
+                wed_remo_sentado: { w: 60, r: 10, rir: 2 },
+                wed_jalon_pecho: { w: 55, r: 10, rir: 2 },
+                wed_abdominales: { w: 15, r: 14, rir: 2 },
+                // Viernes
+                fri_jalon_dominadas: { w: 60, r: 10, rir: 2 },
+                fri_remo: { w: 62.5, r: 10, rir: 2 },
+                fri_elev_laterales: { w: 10, r: 16, rir: 2 },
+                fri_pajaros: { w: 10, r: 15, rir: 2 },
+                fri_curl_biceps: { w: 27.5, r: 10, rir: 2 },
+                fri_ext_triceps: { w: 27.5, r: 10, rir: 2 }
+            };
+
+            const schedule = [
+                { week: 1, dayKey: 'lunes', daysAgo: 14 },
+                { week: 1, dayKey: 'miercoles', daysAgo: 12 },
+                { week: 1, dayKey: 'viernes', daysAgo: 10 },
+                { week: 2, dayKey: 'lunes', daysAgo: 7 },
+                { week: 2, dayKey: 'miercoles', daysAgo: 5 },
+                { week: 2, dayKey: 'viernes', daysAgo: 3 }
+            ];
+
+            return schedule.map((slot, index) => {
+                const dayDef = ROUTINE[slot.dayKey];
+                const isWeek2 = slot.week === 2;
+                const exercises = dayDef.exercises.map(exDef => {
+                    const b = basePerf[exDef.id] || { w: 30, r: 10, rir: 2 };
+                    const w = isWeek2 ? b.w + 2.5 : b.w;
+                    const sets = [];
+                    for (let s = 1; s <= exDef.sets; s++) {
+                        sets.push({
+                            setNumber: s,
+                            weight: w,
+                            reps: Math.max(6, b.r - (s === 3 ? 1 : 0)),
+                            rir: s === exDef.sets ? 2 : 3,
+                            completed: true
+                        });
+                    }
+                    return {
+                        exerciseId: exDef.id,
+                        name: exDef.name,
+                        muscle: exDef.muscle,
+                        sets
+                    };
+                });
+
+                return {
+                    id: `demo_w${slot.week}_${slot.dayKey}`,
+                    isDemo: true,
+                    date: isoDateDaysAgo(slot.daysAgo),
+                    dayKey: slot.dayKey,
+                    dayLabel: `${dayDef.label} • ${dayDef.subtitle}`,
+                    durationMinutes: 54 + index * 2,
+                    exercises
+                };
+            });
+        }
+
+        function detectTodayRoutineKey() {
+            const dayNum = new Date().getDay(); // 0 Sun, 1 Mon, 3 Wed, 5 Fri
+            if (dayNum === 3 || dayNum === 4) return 'miercoles';
+            if (dayNum === 5 || dayNum === 6) return 'viernes';
+            return 'lunes';
+        }
+
+        /* ---------------------------------------------------------------------
+           4. PREVIOUS WEEK LOOKUP & OVERLOAD ENGINE
+           --------------------------------------------------------------------- */
+        function getPreviousSessionForExercise(exerciseId) {
+            const sorted = [...workoutHistory].sort((a, b) => b.date.localeCompare(a.date));
+            for (const sess of sorted) {
+                const found = sess.exercises.find(e => e.exerciseId === exerciseId);
+                if (found && found.sets && found.sets.length > 0) {
+                    return { date: sess.date, sets: found.sets };
+                }
+            }
+            return null;
+        }
+
+        function checkProgressiveOverload(weight, reps, prevSet) {
+            if (!prevSet) return false;
+            const w = parseFloat(weight);
+            const r = parseInt(reps, 10);
+            if (isNaN(w) || isNaN(r) || w <= 0 || r <= 0) return false;
+
+            const pw = parseFloat(prevSet.weight) || 0;
+            const pr = parseInt(prevSet.reps, 10) || 0;
+
+            if (w > pw && r >= pr) return true;
+            if (w === pw && r > pr) return true;
+            const e1rmCurr = w * (1 + r / 30);
+            const e1rmPrev = pw * (1 + pr / 30);
+            return e1rmCurr > e1rmPrev + 0.4;
+        }
+
+        /* ---------------------------------------------------------------------
+           5. DRAFT CREATION & DAILY WORKOUT RENDERING
+           --------------------------------------------------------------------- */
+        function ensureDayDraft(dayKey) {
+            if (activeSessionDrafts[dayKey]) return activeSessionDrafts[dayKey];
+
+            const dayDef = ROUTINE[dayKey];
+            const exercises = dayDef.exercises.map(exDef => {
+                const sets = [];
+                for (let i = 1; i <= exDef.sets; i++) {
+                    sets.push({
+                        setNumber: i,
+                        weight: '',
+                        reps: '',
+                        rir: '2',
+                        completed: false
+                    });
+                }
+                return {
+                    exerciseId: exDef.id,
+                    name: exDef.name,
+                    muscle: exDef.muscle,
+                    repsTarget: exDef.repsTarget,
+                    rirTarget: exDef.rirTarget,
+                    setsLabel: exDef.setsLabel || String(exDef.sets),
+                    sets
+                };
+            });
+
+            activeSessionDrafts[dayKey] = {
+                dayKey,
+                date: isoDateDaysAgo(0),
+                exercises
+            };
+            return activeSessionDrafts[dayKey];
+        }
+
+        function selectRoutineDay(dayKey) {
+            selectedDayKey = dayKey;
+            const draft = ensureDayDraft(dayKey);
+            // Set accordion focus to the first incomplete exercise
+            const firstIncomplete = draft.exercises.findIndex(ex => !ex.sets.every(s => s.completed));
+            expandedExerciseIndex = firstIncomplete !== -1 ? firstIncomplete : 0;
+            renderWorkoutView();
+        }
+
+        function toggleAccordionExercise(exIdx) {
+            expandedExerciseIndex = (expandedExerciseIndex === exIdx) ? -1 : exIdx;
+            renderWorkoutView();
+        }
+
+        function renderWorkoutView() {
+            const draft = ensureDayDraft(selectedDayKey);
+            const dayDef = ROUTINE[selectedDayKey];
+
+            // 1. Render Segmented Day Selector
+            const tabsEl = document.getElementById('dayTabsContainer');
+            tabsEl.innerHTML = ['lunes', 'miercoles', 'viernes'].map(dKey => {
+                const d = ROUTINE[dKey];
+                const isSelected = dKey === selectedDayKey;
+                return `
+                    <button onclick="selectRoutineDay('${dKey}')"
+                        class="py-2 rounded-lg text-xs font-extrabold tracking-wider transition ${
+                            isSelected
+                                ? 'bg-violet text-white shadow-md shadow-violet-deep/40'
+                                : 'text-zinc-400 hover:text-zinc-200'
+                        }">
+                        ${d.label}
+                    </button>
+                `;
+            }).join('');
+
+            // 2. Subtitle & Progress Bar
+            document.getElementById('currentDaySubtitle').textContent = dayDef.subtitle;
+            const dateInput = document.getElementById('sessionDatePicker');
+            if (dateInput) dateInput.value = draft.date;
+
+            const lastDaySess = [...workoutHistory]
+                .filter(s => s.dayKey === selectedDayKey)
+                .sort((a, b) => b.date.localeCompare(a.date))[0];
+
+            document.getElementById('lastTrainedLabel').textContent = lastDaySess
+                ? `Última sesión: ${lastDaySess.date}`
+                : `Sin sesión previa registrada`;
+
+            let totalSetsCount = 0;
+            let completedSetsCount = 0;
+            draft.exercises.forEach(ex => {
+                ex.sets.forEach(s => {
+                    totalSetsCount++;
+                    if (s.completed) completedSetsCount++;
+                });
+            });
+
+            const pct = totalSetsCount > 0 ? Math.round((completedSetsCount / totalSetsCount) * 100) : 0;
+            document.getElementById('dayProgressCount').textContent = `${completedSetsCount} / ${totalSetsCount} series`;
+            document.getElementById('dayProgressBar').style.width = `${pct}%`;
+
+            // 3. Render Smart Accordion Exercises
+            const listEl = document.getElementById('accordionExercisesList');
+            listEl.innerHTML = draft.exercises.map((ex, exIdx) => {
+                const isExpanded = expandedExerciseIndex === exIdx;
+                const doneSets = ex.sets.filter(s => s.completed).length;
+                const allDone = doneSets === ex.sets.length && ex.sets.length > 0;
+                const prevPerf = getPreviousSessionForExercise(ex.exerciseId);
+
+                // Summary of previous week best set for collapsed preview
+                const prevPreview = prevPerf && prevPerf.sets[0]
+                    ? `Ant: ${prevPerf.sets[0].weight}kg × ${prevPerf.sets[0].reps}`
+                    : '';
+
+                if (!isExpanded) {
+                    // COLLAPSED ULTRA-CLEAN CARD
+                    return `
+                        <div onclick="toggleAccordionExercise(${exIdx})"
+                            class="card-clean rounded-2xl px-3.5 py-3 flex items-center justify-between gap-3 cursor-pointer hover:border-zinc-700 transition">
+                            <div class="flex items-center gap-3 min-w-0">
+                                <div class="w-7 h-7 rounded-xl flex items-center justify-center font-mono text-xs font-extrabold shrink-0 ${
+                                    allDone
+                                        ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/40'
+                                        : doneSets > 0
+                                            ? 'bg-violet/20 text-violet-light border border-violet/40'
+                                            : 'bg-surface2 text-zinc-400 border border-borderdark'
+                                }">
+                                    ${allDone ? '<i class="fa-solid fa-check"></i>' : exIdx + 1}
+                                </div>
+                                <div class="min-w-0">
+                                    <h3 class="text-sm font-bold text-white truncate ${allDone ? 'line-through text-zinc-400' : ''}">${ex.name}</h3>
+                                    <div class="flex items-center gap-2 text-[11px] font-mono text-zinc-400">
+                                        <span>${ex.sets.length} × ${ex.repsTarget}</span>
+                                        <span>•</span>
+                                        <span>RIR ${ex.rirTarget}</span>
+                                        ${prevPreview ? `<span class="text-violet-light">• ${prevPreview}</span>` : ''}
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="flex items-center gap-2 shrink-0">
+                                <span class="tabular-nums text-xs font-mono font-bold px-2 py-1 rounded-lg ${
+                                    allDone
+                                        ? 'bg-emerald-500/15 text-emerald-300'
+                                        : 'bg-obsidian text-zinc-400 border border-borderdark'
+                                }">
+                                    ${doneSets}/${ex.sets.length}
+                                </span>
+                                <i class="fa-solid fa-chevron-down text-xs text-zinc-500"></i>
+                            </div>
+                        </div>
+                    `;
+                }
+
+                // EXPANDED ACTIVE EXERCISE CARD
+                const setsHTML = ex.sets.map((s, setIdx) => {
+                    const prevSet = prevPerf && prevPerf.sets[setIdx]
+                        ? prevPerf.sets[setIdx]
+                        : (prevPerf && prevPerf.sets.length ? prevPerf.sets[prevPerf.sets.length - 1] : null);
+
+                    const prevText = prevSet
+                        ? `${prevSet.weight}kg × ${prevSet.reps} <span class="text-zinc-500">@${prevSet.rir ?? 2}</span>`
+                        : '—';
+
+                    const isPR = checkProgressiveOverload(s.weight, s.reps, prevSet);
+
+                    return `
+                        <div class="grid grid-cols-12 gap-1.5 items-center py-1.5 px-2 rounded-xl transition ${
+                            s.completed ? 'bg-emerald-500/10 border border-emerald-500/30' : 'bg-obsidian/70 border border-borderdark/70'
+                        }">
+                            <!-- Col 1-2: Set Number + PR Badge -->
+                            <div class="col-span-2 flex items-center gap-1">
+                                <span class="w-6 h-6 rounded-lg bg-surface2 text-zinc-300 font-mono text-xs font-extrabold flex items-center justify-center">
+                                    ${setIdx + 1}
+                                </span>
+                                ${isPR ? '<span class="text-[9px] font-mono font-extrabold text-emerald-400" title="Sobrecarga progresiva">▲PR</span>' : ''}
+                            </div>
+
+                            <!-- Col 3-5: Semana Pasada (Tap to Copy) -->
+                            <div class="col-span-3">
+                                <button type="button" onclick="copyLastWeekSet(${exIdx}, ${setIdx})"
+                                    class="w-full py-2 px-1.5 rounded-lg bg-surface/90 hover:bg-violet/20 border border-borderdark hover:border-violet/40 text-left transition group"
+                                    title="Toca para copiar peso y reps de la semana pasada">
+                                    <div class="text-[11px] font-mono font-bold text-violet-light truncate group-active:scale-95 transition">
+                                        ${prevText}
+                                    </div>
+                                </button>
+                            </div>
+
+                            <!-- Col 6-7: Peso (kg) -->
+                            <div class="col-span-2">
+                                <input type="text" inputmode="decimal"
+                                    placeholder="${prevSet ? prevSet.weight : 'kg'}"
+                                    value="${s.weight}"
+                                    oninput="updateSetField(${exIdx}, ${setIdx}, 'weight', this.value)"
+                                    class="ios-input tabular-nums w-full h-10 rounded-lg text-center font-bold px-1">
+                            </div>
+
+                            <!-- Col 8-9: Reps -->
+                            <div class="col-span-2">
+                                <input type="text" inputmode="numeric"
+                                    placeholder="${prevSet ? prevSet.reps : ex.repsTarget}"
+                                    value="${s.reps}"
+                                    oninput="updateSetField(${exIdx}, ${setIdx}, 'reps', this.value)"
+                                    class="ios-input tabular-nums w-full h-10 rounded-lg text-center font-bold px-1">
+                            </div>
+
+                            <!-- Col 10-11: RIR -->
+                            <div class="col-span-2">
+                                <input type="text" inputmode="decimal"
+                                    placeholder="${ex.rirTarget}"
+                                    value="${s.rir}"
+                                    oninput="updateSetField(${exIdx}, ${setIdx}, 'rir', this.value)"
+                                    class="ios-input tabular-nums w-full h-10 rounded-lg text-center font-bold px-1 text-zinc-300">
+                            </div>
+
+                            <!-- Col 12: Check Complete -->
+                            <div class="col-span-1 flex justify-end">
+                                <button type="button" onclick="toggleSetCompleted(${exIdx}, ${setIdx})"
+                                    class="w-9 h-10 rounded-lg flex items-center justify-center text-sm font-bold transition ${
+                                        s.completed
+                                            ? 'bg-emerald-500 text-obsidian shadow-md shadow-emerald-500/30'
+                                            : 'bg-surface2 hover:bg-zinc-700 text-zinc-400 border border-borderdark'
+                                    }">
+                                    <i class="fa-solid fa-check"></i>
+                                </button>
+                            </div>
+                        </div>
+                    `;
+                }).join('');
+
+                return `
+                    <div class="card-active rounded-2xl p-3.5 space-y-3">
+                        <!-- Card Header -->
+                        <div class="flex items-start justify-between gap-2">
+                            <div onclick="toggleAccordionExercise(${exIdx})" class="cursor-pointer flex-1">
+                                <div class="flex items-center gap-2">
+                                    <span class="px-2 py-0.5 rounded-md bg-violet/20 border border-violet/40 text-violet-light text-[10px] font-extrabold uppercase">
+                                        ${exIdx + 1}. ${ex.muscle}
+                                    </span>
+                                    <span class="text-[11px] font-mono text-zinc-400">Meta: ${ex.setsLabel} × ${ex.repsTarget} • RIR ${ex.rirTarget}</span>
+                                </div>
+                                <h3 class="text-base font-extrabold text-white mt-1">${ex.name}</h3>
+                            </div>
+
+                            <div class="flex items-center gap-1.5 shrink-0">
+                                ${prevPerf ? `
+                                    <button onclick="copyAllSetsForExercise(${exIdx})"
+                                        class="px-2.5 py-1.5 rounded-lg bg-surface2 hover:bg-violet/25 border border-borderdark text-[11px] font-mono font-bold text-violet-light transition">
+                                        Copiar ant.
+                                    </button>
+                                ` : ''}
+                                <button onclick="toggleAccordionExercise(${exIdx})" class="p-1.5 text-zinc-400 hover:text-white">
+                                    <i class="fa-solid fa-chevron-up text-xs"></i>
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Minimalist Column Headers -->
+                        <div class="grid grid-cols-12 gap-1.5 px-2 text-[10px] font-mono uppercase tracking-wider text-zinc-400">
+                            <div class="col-span-2">Serie</div>
+                            <div class="col-span-3">Sem. Pasada</div>
+                            <div class="col-span-2 text-center">Peso</div>
+                            <div class="col-span-2 text-center">Reps</div>
+                            <div class="col-span-2 text-center">RIR</div>
+                            <div class="col-span-1 text-right">✓</div>
+                        </div>
+
+                        <!-- Set Rows -->
+                        <div class="space-y-1.5">
+                            ${setsHTML}
+                        </div>
+
+                        <!-- Add / Remove Set Controls -->
+                        <div class="flex items-center justify-between pt-1">
+                            <div class="flex items-center gap-2">
+                                <button onclick="addExtraSet(${exIdx})" class="px-2.5 py-1 rounded-lg bg-surface2 hover:bg-zinc-800 border border-borderdark text-[11px] font-semibold text-zinc-300">
+                                    + Serie
+                                </button>
+                                ${ex.sets.length > 1 ? `
+                                    <button onclick="removeLastSet(${exIdx})" class="px-2.5 py-1 rounded-lg bg-surface2 hover:bg-zinc-800 border border-borderdark text-[11px] font-semibold text-zinc-400">
+                                        - Serie
+                                    </button>
+                                ` : ''}
+                            </div>
+                            <span class="text-[10px] font-mono text-zinc-500">Toca "Sem. Pasada" para autocompletar</span>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        /* ---------------------------------------------------------------------
+           6. SET INTERACTION HANDLERS & AUTO-ADVANCE ACCORDION
+           --------------------------------------------------------------------- */
+        function updateSetField(exIdx, setIdx, field, value) {
+            const draft = ensureDayDraft(selectedDayKey);
+            const targetSet = draft.exercises[exIdx].sets[setIdx];
+            if (!targetSet) return;
+            targetSet[field] = value.replace(',', '.');
+        }
+
+        function copyLastWeekSet(exIdx, setIdx) {
+            const draft = ensureDayDraft(selectedDayKey);
+            const ex = draft.exercises[exIdx];
+            const prevPerf = getPreviousSessionForExercise(ex.exerciseId);
+            if (!prevPerf || !prevPerf.sets.length) {
+                showToast('Sin datos de la semana pasada', 'info');
+                return;
+            }
+            const prevSet = prevPerf.sets[setIdx] || prevPerf.sets[prevPerf.sets.length - 1];
+            ex.sets[setIdx].weight = String(prevSet.weight);
+            ex.sets[setIdx].reps = String(prevSet.reps);
+            ex.sets[setIdx].rir = String(prevSet.rir ?? 2);
+            renderWorkoutView();
+        }
+
+        function copyAllSetsForExercise(exIdx) {
+            const draft = ensureDayDraft(selectedDayKey);
+            const ex = draft.exercises[exIdx];
+            const prevPerf = getPreviousSessionForExercise(ex.exerciseId);
+            if (!prevPerf || !prevPerf.sets.length) return;
+
+            ex.sets.forEach((s, idx) => {
+                const prevSet = prevPerf.sets[idx] || prevPerf.sets[prevPerf.sets.length - 1];
+                s.weight = String(prevSet.weight);
+                s.reps = String(prevSet.reps);
+                s.rir = String(prevSet.rir ?? 2);
+            });
+            renderWorkoutView();
+            showToast('Series cargadas con tu marca anterior', 'success');
+        }
+
+        function toggleSetCompleted(exIdx, setIdx) {
+            const draft = ensureDayDraft(selectedDayKey);
+            const ex = draft.exercises[exIdx];
+            const setObj = ex.sets[setIdx];
+
+            // If user taps ✓ with empty weight/reps, automatically pull last week's values if available!
+            if (!setObj.completed && (setObj.weight === '' || setObj.reps === '')) {
+                const prevPerf = getPreviousSessionForExercise(ex.exerciseId);
+                const prevSet = prevPerf && prevPerf.sets[setIdx]
+                    ? prevPerf.sets[setIdx]
+                    : (prevPerf && prevPerf.sets.length ? prevPerf.sets[prevPerf.sets.length - 1] : null);
+                if (prevSet) {
+                    if (setObj.weight === '') setObj.weight = String(prevSet.weight);
+                    if (setObj.reps === '') setObj.reps = String(prevSet.reps);
+                    if (setObj.rir === '') setObj.rir = String(prevSet.rir ?? 2);
+                }
+            }
+
+            if (!setObj.completed && (setObj.weight === '' || setObj.reps === '')) {
+                showToast('Ingresa Peso y Reps antes de marcar la serie', 'warning');
+                return;
+            }
+
+            setObj.completed = !setObj.completed;
+
+            if (setObj.completed) {
+                // 1. Auto-start Total Workout Timer if not running yet
+                if (!isTotalTimerRunning) {
+                    startTotalTimer();
+                }
+                // 2. Auto-start Rest Countdown Timer
+                triggerAutoRestCountdown();
+
+                // 3. If all sets in this exercise are now completed, auto-advance accordion to next exercise
+                const allCompleted = ex.sets.every(s => s.completed);
+                if (allCompleted) {
+                    renderWorkoutView();
+                    setTimeout(() => {
+                        const nextIncomplete = draft.exercises.findIndex((item, i) => i > exIdx && !item.sets.every(st => st.completed));
+                        expandedExerciseIndex = nextIncomplete !== -1 ? nextIncomplete : -1;
+                        renderWorkoutView();
+                    }, 350);
+                    return;
+                }
+            }
+
+            renderWorkoutView();
+        }
+
+        function addExtraSet(exIdx) {
+            const draft = ensureDayDraft(selectedDayKey);
+            const ex = draft.exercises[exIdx];
+            const lastSet = ex.sets[ex.sets.length - 1] || { weight: '', reps: '', rir: '2' };
+            ex.sets.push({
+                setNumber: ex.sets.length + 1,
+                weight: lastSet.weight,
+                reps: lastSet.reps,
+                rir: lastSet.rir,
+                completed: false
+            });
+            renderWorkoutView();
+        }
+
+        function removeLastSet(exIdx) {
+            const draft = ensureDayDraft(selectedDayKey);
+            const ex = draft.exercises[exIdx];
+            if (ex.sets.length <= 1) return;
+            ex.sets.pop();
+            renderWorkoutView();
+        }
+
+        function updateDraftDate(val) {
+            const draft = ensureDayDraft(selectedDayKey);
+            if (val) draft.date = val;
+        }
+
+        /* ---------------------------------------------------------------------
+           7. FINISH & SAVE WORKOUT (CLOUD + MEMORY)
+           --------------------------------------------------------------------- */
+        async function finishAndSaveSession() {
+            const draft = ensureDayDraft(selectedDayKey);
+            const dayDef = ROUTINE[selectedDayKey];
+
+            const recordedExercises = draft.exercises.map(ex => {
+                const validSets = ex.sets
+                    .filter(s => s.completed || (parseFloat(s.weight) > 0 && parseInt(s.reps, 10) > 0))
+                    .map((s, idx) => ({
+                        setNumber: idx + 1,
+                        weight: parseFloat(s.weight) || 0,
+                        reps: parseInt(s.reps, 10) || 0,
+                        rir: parseFloat(s.rir) || 2,
+                        completed: true
+                    }));
+                return {
+                    exerciseId: ex.exerciseId,
+                    name: ex.name,
+                    muscle: ex.muscle,
+                    sets: validSets
+                };
+            }).filter(ex => ex.sets.length > 0);
+
+            if (recordedExercises.length === 0) {
+                showToast('Completa al menos 1 serie antes de guardar la sesión', 'warning');
+                return;
+            }
+
+            const durationMinutes = totalElapsedSeconds > 60 ? Math.round(totalElapsedSeconds / 60) : 55;
+            const newSession = {
+                id: `sess_${Date.now()}`,
+                isDemo: false,
+                date: draft.date || isoDateDaysAgo(0),
+                dayKey: selectedDayKey,
+                dayLabel: `${dayDef.label} • ${dayDef.subtitle}`,
+                durationMinutes,
+                exercises: recordedExercises
+            };
+
+            workoutHistory.push(newSession);
+
+            // Sync to Firestore Cloud if authenticated
+            await saveSessionToCloud(newSession);
+
+            // Reset current day draft so next time it pulls the newly saved session as "Semana Pasada"!
+            delete activeSessionDrafts[selectedDayKey];
+            expandedExerciseIndex = 0;
+
+            showToast('¡Entrenamiento guardado! Tus marcas ya son la referencia para la próxima semana.', 'success');
+            switchMainView('analytics');
+        }
+
+        /* ---------------------------------------------------------------------
+           8. DUAL TIMERS & iOS-SAFE WEB AUDIO SYNTHESIS
+           --------------------------------------------------------------------- */
+        function startTotalTimer() {
+            if (isTotalTimerRunning) return;
+            isTotalTimerRunning = true;
+            const dot = document.getElementById('totalTimerDot');
+            if (dot) dot.className = 'w-2 h-2 rounded-full bg-emerald-400 animate-pulse';
+
+            totalTimerInterval = setInterval(() => {
+                totalElapsedSeconds++;
+                updateTotalTimerUI();
+            }, 1000);
+        }
+
+        function toggleTotalTimer() {
+            if (isTotalTimerRunning) {
+                isTotalTimerRunning = false;
+                clearInterval(totalTimerInterval);
+                const dot = document.getElementById('totalTimerDot');
+                if (dot) dot.className = 'w-2 h-2 rounded-full bg-amber-400';
+                showToast('Tiempo total en pausa', 'info');
+            } else {
+                startTotalTimer();
+                showToast('Tiempo total en marcha', 'info');
+            }
+        }
+
+        function resetTotalTimerConfirm() {
+            openAppModal(
+                'Reiniciar Tiempo Total',
+                '¿Deseas poner el cronómetro de tiempo total de entrenamiento en 00:00:00?',
+                [
+                    { label: 'Cancelar', style: 'bg-surface2 text-zinc-300', onClick: closeAppModal },
+                    {
+                        label: 'Reiniciar',
+                        style: 'bg-violet text-white font-bold',
+                        onClick: () => {
+                            clearInterval(totalTimerInterval);
+                            isTotalTimerRunning = false;
+                            totalElapsedSeconds = 0;
+                            updateTotalTimerUI();
+                            const dot = document.getElementById('totalTimerDot');
+                            if (dot) dot.className = 'w-2 h-2 rounded-full bg-zinc-500';
+                            closeAppModal();
+                        }
+                    }
+                ]
+            );
+        }
+
+        function updateTotalTimerUI() {
+            const hrs = String(Math.floor(totalElapsedSeconds / 3600)).padStart(2, '0');
+            const mins = String(Math.floor((totalElapsedSeconds % 3600) / 60)).padStart(2, '0');
+            const secs = String(totalElapsedSeconds % 60).padStart(2, '0');
+            const el = document.getElementById('totalTimerDisplay');
+            if (el) el.textContent = `${hrs}:${mins}:${secs}`;
+        }
+
+        function triggerAutoRestCountdown() {
+            restRemainingSeconds = defaultRestDuration;
+            startRestInterval();
+        }
+
+        function startOrPauseRestTimer() {
+            if (isRestTimerRunning) {
+                clearInterval(restTimerInterval);
+                isRestTimerRunning = false;
+                document.getElementById('restPlayIcon').className = 'fa-solid fa-play';
+            } else {
+                if (restRemainingSeconds <= 0) restRemainingSeconds = defaultRestDuration;
+                startRestInterval();
+            }
+        }
+
+        function startRestInterval() {
+            if (restTimerInterval) clearInterval(restTimerInterval);
+            isRestTimerRunning = true;
+            document.getElementById('restPlayIcon').className = 'fa-solid fa-pause';
+            updateRestTimerUI();
+
+            restTimerInterval = setInterval(() => {
+                restRemainingSeconds--;
+                updateRestTimerUI();
+                if (restRemainingSeconds <= 0) {
+                    clearInterval(restTimerInterval);
+                    isRestTimerRunning = false;
+                    document.getElementById('restPlayIcon').className = 'fa-solid fa-play';
+                    playiOSGentleChime();
+                    const pill = document.getElementById('restTimerPill');
+                    if (pill) {
+                        pill.classList.add('violet-pulse');
+                        setTimeout(() => pill.classList.remove('violet-pulse'), 3600);
+                    }
+                    showToast('¡Descanso terminado! A por la siguiente serie', 'success');
+                }
+            }, 1000);
+        }
+
+        function setRestPreset(seconds) {
+            defaultRestDuration = seconds;
+            restRemainingSeconds = seconds;
+            startRestInterval();
+            document.getElementById('restPopover').classList.add('hidden');
+        }
+
+        function adjustRestSeconds(delta) {
+            restRemainingSeconds = Math.max(0, restRemainingSeconds + delta);
+            updateRestTimerUI();
+        }
+
+        function resetRestTimer() {
+            clearInterval(restTimerInterval);
+            isRestTimerRunning = false;
+            restRemainingSeconds = defaultRestDuration;
+            document.getElementById('restPlayIcon').className = 'fa-solid fa-play';
+            updateRestTimerUI();
+        }
+
+        function toggleRestPopover() {
+            document.getElementById('restPopover').classList.toggle('hidden');
+        }
+
+        function updateRestTimerUI() {
+            const m = String(Math.floor(restRemainingSeconds / 60)).padStart(2, '0');
+            const s = String(restRemainingSeconds % 60).padStart(2, '0');
+            const el = document.getElementById('restTimerDisplay');
+            if (el) el.textContent = `${m}:${s}`;
+        }
+
+        function playiOSGentleChime() {
+            try {
+                const AudioCtx = window.AudioContext || window.webkitAudioContext;
+                const ctx = new AudioCtx();
+                [587.33, 880].forEach((freq, i) => {
+                    const osc = ctx.createOscillator();
+                    const gain = ctx.createGain();
+                    osc.type = 'sine';
+                    osc.frequency.value = freq;
+                    gain.gain.setValueAtTime(0.12, ctx.currentTime + i * 0.15);
+                    gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + i * 0.15 + 0.14);
+                    osc.connect(gain);
+                    gain.connect(ctx.destination);
+                    osc.start(ctx.currentTime + i * 0.15);
+                    osc.stop(ctx.currentTime + i * 0.15 + 0.14);
+                });
+            } catch (e) {}
+        }
+
+        /* ---------------------------------------------------------------------
+           9. ANALYTICS, CHART & iOS / PC CSV EXPORT (VIEW 2)
+           --------------------------------------------------------------------- */
+        function populateChartExerciseDropdown() {
+            const select = document.getElementById('chartExerciseSelect');
+            if (!select) return;
+            const current = select.value;
+            const options = [];
+            ['lunes', 'miercoles', 'viernes'].forEach(dKey => {
+                const d = ROUTINE[dKey];
+                d.exercises.forEach(ex => {
+                    options.push(`<option value="${ex.id}">${d.label.slice(0,3)} • ${ex.name}</option>`);
+                });
+            });
+            select.innerHTML = options.join('');
+            if (current && Array.from(select.options).some(o => o.value === current)) {
+                select.value = current;
+            }
+        }
+
+        function renderAnalyticsView() {
+            const select = document.getElementById('chartExerciseSelect');
+            if (!select || !select.options.length) populateChartExerciseDropdown();
+
+            const exId = select.value;
+            const metric = document.getElementById('chartMetricSelect').value;
+
+            const sorted = [...workoutHistory].sort((a, b) => a.date.localeCompare(b.date));
+            const points = [];
+            let bestW = 0;
+            let best1RM = 0;
+            let lastSetsSummary = '--';
+
+            sorted.forEach(sess => {
+                const match = sess.exercises.find(e => e.exerciseId === exId);
+                if (!match || !match.sets.length) return;
+
+                let maxW = 0;
+                let max1RM = 0;
+                let vol = 0;
+
+                match.sets.forEach(s => {
+                    const w = parseFloat(s.weight) || 0;
+                    const r = parseInt(s.reps, 10) || 0;
+                    const e1rm = w * (1 + r / 30);
+                    if (w > maxW) maxW = w;
+                    if (e1rm > max1RM) max1RM = e1rm;
+                    vol += w * r;
+
+                    if (w > bestW) bestW = w;
+                    if (e1rm > best1RM) best1RM = e1rm;
+                });
+
+                lastSetsSummary = `${match.sets[0].weight}kg × ${match.sets[0].reps} (${match.sets.length}s)`;
+
+                points.push({
+                    date: sess.date,
+                    e1rm: Number(max1RM.toFixed(1)),
+                    maxWeight: Number(maxW.toFixed(1)),
+                    volume: Math.round(vol)
+                });
+            });
+
+            document.getElementById('statBestWeight').textContent = bestW ? `${bestW} kg` : '-- kg';
+            document.getElementById('statBest1RM').textContent = best1RM ? `${best1RM.toFixed(1)} kg` : '-- kg';
+            document.getElementById('statLastSets').textContent = lastSetsSummary;
+            document.getElementById('totalSessionsBadge').textContent = `${workoutHistory.length} sesiones`;
+
+            const deltaPill = document.getElementById('chartDeltaPill');
+            if (points.length >= 2) {
+                const diff = points[points.length - 1][metric] - points[0][metric];
+                const sign = diff >= 0 ? '+' : '';
+                deltaPill.textContent = `${sign}${diff.toFixed(1).replace('.0', '')} kg`;
+            } else {
+                deltaPill.textContent = `${points.length} reg.`;
+            }
+
+            drawProgressCanvas(points, metric);
+            renderHistoryCards();
+        }
+
+        function drawProgressCanvas(points, metricKey) {
+            const canvas = document.getElementById('progressCanvas');
+            if (!canvas) return;
+            const ctx = canvas.getContext('2d');
+            const rect = canvas.parentElement.getBoundingClientRect();
+            const dpr = window.devicePixelRatio || 1;
+            const w = rect.width - 16;
+            const h = rect.height - 16;
+
+            canvas.width = w * dpr;
+            canvas.height = h * dpr;
+            ctx.scale(dpr, dpr);
+            ctx.clearRect(0, 0, w, h);
+
+            if (!points.length) {
+                ctx.fillStyle = '#71717a';
+                ctx.font = '12px Inter, sans-serif';
+                ctx.textAlign = 'center';
+                ctx.fillText('Sin registros para este ejercicio todavía', w / 2, h / 2);
+                return;
+            }
+
+            const padL = 42, padR = 18, padT = 22, padB = 26;
+            const plotW = w - padL - padR;
+            const plotH = h - padT - padB;
+
+            const vals = points.map(p => p[metricKey]);
+            let minV = Math.min(...vals);
+            let maxV = Math.max(...vals);
+            if (minV === maxV) {
+                minV = Math.max(0, minV - 5);
+                maxV = maxV + 5;
+            } else {
+                const pad = (maxV - minV) * 0.2;
+                minV = Math.max(0, minV - pad);
+                maxV = maxV + pad;
+            }
+
+            // Grid
+            ctx.strokeStyle = '#24242e';
+            ctx.lineWidth = 1;
+            ctx.fillStyle = '#a1a1aa';
+            ctx.font = '10px JetBrains Mono, monospace';
+            ctx.textAlign = 'right';
+            for (let i = 0; i <= 3; i++) {
+                const y = padT + (plotH / 3) * i;
+                const v = maxV - ((maxV - minV) / 3) * i;
+                ctx.beginPath();
+                ctx.moveTo(padL, y);
+                ctx.lineTo(w - padR, y);
+                ctx.stroke();
+                ctx.fillText(Math.round(v), padL - 6, y + 3);
+            }
+
+            const coords = points.map((p, i) => ({
+                x: points.length === 1 ? padL + plotW / 2 : padL + (i / (points.length - 1)) * plotW,
+                y: padT + plotH - ((p[metricKey] - minV) / (maxV - minV)) * plotH,
+                val: p[metricKey],
+                label: p.date.slice(5)
+            }));
+
+            if (coords.length > 1) {
+                const grad = ctx.createLinearGradient(0, padT, 0, padT + plotH);
+                grad.addColorStop(0, 'rgba(139, 92, 246, 0.4)');
+                grad.addColorStop(1, 'rgba(139, 92, 246, 0.0)');
+                ctx.beginPath();
+                ctx.moveTo(coords[0].x, padT + plotH);
+                coords.forEach(c => ctx.lineTo(c.x, c.y));
+                ctx.lineTo(coords[coords.length - 1].x, padT + plotH);
+                ctx.closePath();
+                ctx.fillStyle = grad;
+                ctx.fill();
+
+                ctx.beginPath();
+                coords.forEach((c, i) => i === 0 ? ctx.moveTo(c.x, c.y) : ctx.lineTo(c.x, c.y));
+                ctx.strokeStyle = '#8b5cf6';
+                ctx.lineWidth = 2.5;
+                ctx.stroke();
+            }
+
+            coords.forEach(c => {
+                ctx.beginPath();
+                ctx.arc(c.x, c.y, 4, 0, Math.PI * 2);
+                ctx.fillStyle = '#c4b5fd';
+                ctx.fill();
+
+                ctx.fillStyle = '#ffffff';
+                ctx.font = 'bold 10px JetBrains Mono, monospace';
+                ctx.textAlign = 'center';
+                ctx.fillText(c.val, c.x, c.y - 8);
+
+                ctx.fillStyle = '#a1a1aa';
+                ctx.font = '10px JetBrains Mono, monospace';
+                ctx.fillText(c.label, c.x, h - 6);
+            });
+        }
+
+        function renderHistoryCards() {
+            const container = document.getElementById('historyListContainer');
+            const dayFilter = document.getElementById('historyDayFilter').value;
+            const list = [...workoutHistory]
+                .filter(s => dayFilter === 'all' || s.dayKey === dayFilter)
+                .sort((a, b) => b.date.localeCompare(a.date));
+
+            if (!list.length) {
+                container.innerHTML = `<div class="text-xs text-zinc-500 text-center py-6">No hay sesiones registradas.</div>`;
+                return;
+            }
+
+            container.innerHTML = list.map(sess => {
+                let vol = 0;
+                let totalSets = 0;
+                sess.exercises.forEach(ex => {
+                    ex.sets.forEach(s => {
+                        totalSets++;
+                        vol += (parseFloat(s.weight) || 0) * (parseInt(s.reps, 10) || 0);
+                    });
+                });
+
+                const exDetails = sess.exercises.map(ex => {
+                    const pills = ex.sets.map((s, i) =>
+                        `<span class="px-1.5 py-0.5 rounded bg-obsidian border border-borderdark text-[10px] font-mono text-zinc-300">
+                            S${i + 1}: <b>${s.weight}kg</b>×${s.reps} @${s.rir ?? 2}
+                        </span>`
+                    ).join('');
+                    return `
+                        <div class="pt-1.5 border-t border-borderdark/50 first:border-none">
+                            <div class="text-[11px] font-bold text-zinc-200 mb-1">${ex.name}</div>
+                            <div class="flex flex-wrap gap-1">${pills}</div>
+                        </div>
+                    `;
+                }).join('');
+
+                return `
+                    <details class="group bg-obsidian/70 border border-borderdark rounded-xl p-3">
+                        <summary class="list-none cursor-pointer flex items-center justify-between gap-2">
+                            <div>
+                                <div class="flex items-center gap-2">
+                                    <span class="font-mono text-xs font-extrabold text-violet-light">${sess.date}</span>
+                                    ${sess.isDemo ? '<span class="text-[9px] font-mono px-1.5 py-0.2 rounded bg-violet/15 text-violet-light">Demo</span>' : ''}
+                                    <span class="text-[11px] font-mono text-zinc-400">${sess.durationMinutes || 55} min</span>
+                                </div>
+                                <div class="text-xs font-bold text-white mt-0.5">${sess.dayLabel || sess.dayKey.toUpperCase()}</div>
+                            </div>
+                            <div class="flex items-center gap-2.5">
+                                <div class="text-right">
+                                    <div class="text-xs font-mono font-bold text-emerald-400">${Math.round(vol).toLocaleString('es-PE')} kg</div>
+                                    <div class="text-[10px] font-mono text-zinc-400">${totalSets} series</div>
+                                </div>
+                                <button type="button" onclick="event.preventDefault(); deleteSessionItem('${sess.id}')" class="text-zinc-500 hover:text-rose-400 p-1">
+                                    <i class="fa-solid fa-trash-can text-xs"></i>
+                                </button>
+                            </div>
+                        </summary>
+                        <div class="mt-2.5 pt-2 border-t border-borderdark space-y-1.5">
+                            ${exDetails}
+                        </div>
+                    </details>
+                `;
+            }).join('');
+        }
+
+        function generateCSVString() {
+            const headers = [
+                'Fecha', 'Dia_Rutina', 'Ejercicio', 'Grupo_Muscular',
+                'Serie_Num', 'Peso_kg', 'Reps', 'RIR', 'Volumen_kg', '1RM_Estimado_kg', 'Duracion_Sesion_Min'
+            ];
+            const rows = [headers.join(',')];
+            const sorted = [...workoutHistory].sort((a, b) => a.date.localeCompare(b.date));
+
+            sorted.forEach(sess => {
+                sess.exercises.forEach(ex => {
+                    ex.sets.forEach((s, idx) => {
+                        const w = parseFloat(s.weight) || 0;
+                        const r = parseInt(s.reps, 10) || 0;
+                        const rir = s.rir ?? 2;
+                        const vol = (w * r).toFixed(1);
+                        const e1rm = (w * (1 + r / 30)).toFixed(2);
+                        rows.push([
+                            sess.date,
+                            `"${(sess.dayLabel || sess.dayKey).replace(/"/g, '""')}"`,
+                            `"${(ex.name || '').replace(/"/g, '""')}"`,
+                            `"${(ex.muscle || '').replace(/"/g, '""')}"`,
+                            s.setNumber || (idx + 1),
+                            w,
+                            r,
+                            rir,
+                            vol,
+                            e1rm,
+                            sess.durationMinutes || 55
+                        ].join(','));
+                    });
+                });
+            });
+            return '\uFEFF' + rows.join('\n');
+        }
+
+        async function shareOrDownloadCSV(preferNativeShare) {
+            if (!workoutHistory.length) {
+                showToast('No hay sesiones para exportar', 'warning');
+                return;
+            }
+            const csvText = generateCSVString();
+            const fileName = `VORTEX_Entrenamientos_${isoDateDaysAgo(0)}.csv`;
+            const blob = new Blob([csvText], { type: 'text/csv;charset=utf-8;' });
+
+            if (preferNativeShare && navigator.canShare) {
+                try {
+                    const file = new File([blob], fileName, { type: 'text/csv' });
+                    if (navigator.canShare({ files: [file] })) {
+                        await navigator.share({
+                            title: 'Mis Entrenamientos VORTEX (.CSV)',
+                            text: 'Historial de entrenamiento para análisis en Excel / PC',
+                            files: [file]
+                        });
+                        showToast('Menú de compartir de iPhone completado', 'success');
+                        return;
+                    }
+                } catch (err) {
+                    if (err.name === 'AbortError') return;
+                }
+            }
+
+            // Fallback or PC Direct Download
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = fileName;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+            showToast('Archivo Excel .CSV descargado', 'success');
+        }
+
+        function exportFullJSON() {
+            const payload = {
+                app: 'VORTEX_DARK_PERFORMANCE_V2',
+                exportedAt: new Date().toISOString(),
+                history: workoutHistory
+            };
+            const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `VORTEX_Backup_${isoDateDaysAgo(0)}.json`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+            showToast('Copia JSON descargada', 'success');
+        }
+
+        function importFullJSON(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = async (e) => {
+                try {
+                    const parsed = JSON.parse(e.target.result);
+                    if (!parsed.history || !Array.isArray(parsed.history)) {
+                        showToast('Archivo JSON inválido', 'warning');
+                        return;
+                    }
+                    const existingIds = new Set(workoutHistory.map(s => s.id));
+                    let added = 0;
+                    for (const sess of parsed.history) {
+                        if (!existingIds.has(sess.id)) {
+                            workoutHistory.push(sess);
+                            await saveSessionToCloud(sess);
+                            added++;
+                        }
+                    }
+                    renderAnalyticsView();
+                    renderWorkoutView();
+                    showToast(`${added} sesiones importadas con éxito`, 'success');
+                } catch (err) {
+                    showToast('Error al leer el archivo JSON', 'warning');
+                }
+            };
+            reader.readAsText(file);
+            event.target.value = '';
+        }
+
+        function deleteSessionItem(sessId) {
+            openAppModal(
+                'Eliminar Sesión',
+                '¿Deseas eliminar esta sesión del historial?',
+                [
+                    { label: 'Cancelar', style: 'bg-surface2 text-zinc-300', onClick: closeAppModal },
+                    {
+                        label: 'Eliminar',
+                        style: 'bg-rose-600 text-white font-bold',
+                        onClick: async () => {
+                            workoutHistory = workoutHistory.filter(s => s.id !== sessId);
+                            await deleteSessionFromCloud(sessId);
+                            closeAppModal();
+                            renderAnalyticsView();
+                            renderWorkoutView();
+                            showToast('Sesión eliminada', 'info');
+                        }
+                    }
+                ]
+            );
+        }
+
+        function confirmClearHistory() {
+            openAppModal(
+                'Limpiar Datos de Prueba o Reiniciar',
+                '¿Quieres borrar las 2 semanas de prueba (Demo) para empezar desde cero con tus propios pesos, o restaurar las 2 semanas de ejemplo?',
+                [
+                    { label: 'Cancelar', style: 'bg-surface2 text-zinc-300', onClick: closeAppModal },
+                    {
+                        label: 'Restaurar Demo',
+                        style: 'bg-violet/20 text-violet-light border border-violet/40 font-bold',
+                        onClick: () => {
+                            workoutHistory = buildInitial2WeeksHistory();
+                            activeSessionDrafts = {};
+                            closeAppModal();
+                            renderAnalyticsView();
+                            renderWorkoutView();
+                            showToast('2 semanas de referencia restauradas', 'success');
+                        }
+                    },
+                    {
+                        label: 'Empezar de Cero',
+                        style: 'bg-rose-600 text-white font-bold',
+                        onClick: async () => {
+                            for (const s of workoutHistory) {
+                                await deleteSessionFromCloud(s.id);
+                            }
+                            workoutHistory = [];
+                            activeSessionDrafts = {};
+                            closeAppModal();
+                            renderAnalyticsView();
+                            renderWorkoutView();
+                            showToast('Historial limpio. Listo para tu Semana 1.', 'info');
+                        }
+                    }
+                ]
+            );
+        }
+
+        /* ---------------------------------------------------------------------
+           10. CLOUD SYNC (FIRESTORE) INITIALIZATION
+           --------------------------------------------------------------------- */
+        async function initCloudSync() {
+            const dot = document.getElementById('cloudStatusDot');
+            const statusText = document.getElementById('syncStatusText');
+            try {
+                if (typeof __firebase_config === 'undefined' || !__firebase_config) {
+                    return;
+                }
+                const firebaseConfig = JSON.parse(__firebase_config);
+                const app = initializeApp(firebaseConfig);
+                auth = getAuth(app);
+                db = getFirestore(app);
+
+                if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
+                    await signInWithCustomToken(auth, __initial_auth_token);
+                } else {
+                    await signInAnonymously(auth);
+                }
+
+                onAuthStateChanged(auth, (user) => {
+                    currentUser = user;
+                    if (!user) return;
+                    if (dot) {
+                        dot.className = 'text-[10px] font-mono text-emerald-400 ml-1';
+                        dot.title = 'Sincronizado en la nube';
+                    }
+                    if (statusText) {
+                        statusText.textContent = 'Sincronización iPhone ⇄ PC activa en la nube';
+                    }
+
+                    const colRef = collection(db, 'artifacts', appId, 'users', user.uid, 'vortex_sessions');
+                    onSnapshot(
+                        colRef,
+                        (snapshot) => {
+                            if (!snapshot.empty) {
+                                const cloudSessions = [];
+                                snapshot.forEach(docSnap => cloudSessions.push(docSnap.data()));
+                                workoutHistory = cloudSessions;
+                                renderWorkoutView();
+                                if (currentView === 'analytics') renderAnalyticsView();
+                            }
+                        },
+                        (err) => {
+                            console.warn('Firestore snapshot notice:', err);
+                        }
+                    );
+                });
+            } catch (e) {
+                console.warn('Offline / Standalone mode active:', e);
+            }
+        }
+
+        async function saveSessionToCloud(sessionObj) {
+            if (!db || !currentUser) return;
+            try {
+                const docRef = doc(db, 'artifacts', appId, 'users', currentUser.uid, 'vortex_sessions', sessionObj.id);
+                await setDoc(docRef, sessionObj);
+            } catch (e) {
+                console.warn('Cloud save notice:', e);
+            }
+        }
+
+        async function deleteSessionFromCloud(sessionId) {
+            if (!db || !currentUser) return;
+            try {
+                const docRef = doc(db, 'artifacts', appId, 'users', currentUser.uid, 'vortex_sessions', sessionId);
+                await deleteDoc(docRef);
+            } catch (e) {
+                console.warn('Cloud delete notice:', e);
+            }
+        }
+
+        /* ---------------------------------------------------------------------
+           11. VIEW NAVIGATION & UI HELPERS
+           --------------------------------------------------------------------- */
+        function switchMainView(viewName) {
+            currentView = viewName;
+            const vWorkout = document.getElementById('view-workout');
+            const vAnalytics = document.getElementById('view-analytics');
+            const btnW = document.getElementById('navBtnWorkout');
+            const btnA = document.getElementById('navBtnAnalytics');
+
+            if (viewName === 'workout') {
+                vWorkout.classList.remove('hidden');
+                vAnalytics.classList.add('hidden');
+                btnW.className = 'flex items-center justify-center gap-2 py-2.5 rounded-xl font-extrabold text-xs tracking-wide bg-violet text-white shadow-md shadow-violet-deep/30 transition';
+                btnA.className = 'flex items-center justify-center gap-2 py-2.5 rounded-xl font-extrabold text-xs tracking-wide bg-charcoal text-zinc-400 border border-borderdark transition';
+                renderWorkoutView();
+            } else {
+                vWorkout.classList.add('hidden');
+                vAnalytics.classList.remove('hidden');
+                btnA.className = 'flex items-center justify-center gap-2 py-2.5 rounded-xl font-extrabold text-xs tracking-wide bg-violet text-white shadow-md shadow-violet-deep/30 transition';
+                btnW.className = 'flex items-center justify-center gap-2 py-2.5 rounded-xl font-extrabold text-xs tracking-wide bg-charcoal text-zinc-400 border border-borderdark transition';
+                populateChartExerciseDropdown();
+                renderAnalyticsView();
+            }
+        }
+
+        function openAppModal(title, message, buttons = []) {
+            document.getElementById('appModalTitle').textContent = title;
+            document.getElementById('appModalMessage').textContent = message;
+            const btnBox = document.getElementById('appModalButtons');
+            btnBox.innerHTML = '';
+            buttons.forEach(b => {
+                const btn = document.createElement('button');
+                btn.className = `px-3 py-2 rounded-xl text-xs transition ${b.style}`;
+                btn.textContent = b.label;
+                btn.onclick = b.onClick;
+                btnBox.appendChild(btn);
+            });
+            document.getElementById('appModal').classList.remove('hidden');
+        }
+
+        function closeAppModal() {
+            document.getElementById('appModal').classList.add('hidden');
+        }
+
+        function showToast(msg, type = 'info') {
+            const box = document.getElementById('toastBox');
+            if (!box) return;
+            const styles = {
+                success: 'bg-emerald-950/95 border-emerald-500/50 text-emerald-200',
+                warning: 'bg-amber-950/95 border-amber-500/50 text-amber-200',
+                info: 'bg-surface2/95 border-violet/50 text-zinc-100'
+            };
+            const el = document.createElement('div');
+            el.className = `w-full px-3.5 py-2.5 rounded-xl border text-xs font-bold shadow-xl backdrop-blur-md flex items-center gap-2 transition-all duration-300 ${styles[type] || styles.info}`;
+            el.innerHTML = `<i class="fa-solid ${type === 'success' ? 'fa-circle-check text-emerald-400' : type === 'warning' ? 'fa-triangle-exclamation text-amber-400' : 'fa-bolt text-violet-light'}"></i><span>${msg}</span>`;
+            box.appendChild(el);
+            setTimeout(() => {
+                el.style.opacity = '0';
+                setTimeout(() => el.remove(), 250);
+            }, 2500);
+        }
+
+        // Expose functions to global window scope for inline HTML event handlers
+        Object.assign(window, {
+            selectRoutineDay,
+            toggleAccordionExercise,
+            updateSetField,
+            copyLastWeekSet,
+            copyAllSetsForExercise,
+            toggleSetCompleted,
+            addExtraSet,
+            removeLastSet,
+            updateDraftDate,
+            finishAndSaveSession,
+            toggleTotalTimer,
+            resetTotalTimerConfirm,
+            startOrPauseRestTimer,
+            setRestPreset,
+            adjustRestSeconds,
+            resetRestTimer,
+            toggleRestPopover,
+            switchMainView,
+            renderAnalyticsView,
+            renderHistoryCards,
+            shareOrDownloadCSV,
+            exportFullJSON,
+            importFullJSON,
+            deleteSessionItem,
+            confirmClearHistory,
+            closeAppModal
+        });
+
+        /* ---------------------------------------------------------------------
+           12. BOOTSTRAP ON LOAD
+           --------------------------------------------------------------------- */
+        window.onload = () => {
+            workoutHistory = buildInitial2WeeksHistory();
+            switchMainView('workout');
+            initCloudSync();
+            window.addEventListener('resize', () => {
+                if (currentView === 'analytics') renderAnalyticsView();
+            });
+        };
+    </script>
+</body>
+</html>
